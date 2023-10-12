@@ -1,0 +1,54 @@
+version: '3'
+services:
+  gluon-trader:
+    image: gluon
+    container_name: gluon-trader
+    ports:
+      - 3000:80
+    networks:
+      - gluon-net
+
+  gluon-node:
+    image: opensearchproject/opensearch:1.3.2
+    container_name: gluon-node
+    environment:
+      - cluster.name=gluon-cluster
+      - node.name=gluon-node
+      - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+      - "DISABLE_INSTALL_DEMO_CONFIG=true" # disables execution of install_demo_configuration.sh bundled with security plugin, which installs demo certificates and security configurations to OpenSearch
+      - "DISABLE_SECURITY_PLUGIN=true" # disables security plugin entirely in OpenSearch by setting plugins.security.disabled: true in opensearch.yml
+      - "discovery.type=single-node" # disables bootstrap checks that are enabled when network.host is set to a non-loopback address
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536 # maximum number of open files for the OpenSearch user, set to at least 65536 on modern systems
+        hard: 65536
+    volumes:
+      - gluon-data:/usr/share/opensearch/data
+    ports:
+      - 9200:9200
+      - 9600:9600 # required for Performance Analyzer
+    networks:
+      - gluon-net
+
+  gluon-dashboards:
+    image: opensearchproject/opensearch-dashboards:1.3.2
+    container_name: gluon-dashboards
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://gluon-node:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
+    networks:
+      - gluon-net
+
+volumes:
+  gluon-data:
+
+networks:
+  gluon-net:

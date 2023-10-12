@@ -1,0 +1,51 @@
+server {
+    listen 80 ssl;
+    ssl_certificate /install/ssl/server.pem;
+    ssl_certificate_key /install/ssl/server.key;
+
+    location / {
+        add_header 'Access-Control-Allow-Origin' '*';
+        root /client-dist;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /auth {
+        add_header 'Access-Control-Allow-Origin' '*';
+        include uwsgi_params;
+        uwsgi_pass unix:/auth.sock;
+    }
+
+    location /api {
+        add_header 'Access-Control-Allow-Origin' '*';
+        include uwsgi_params;
+        uwsgi_pass unix:/api.sock;
+    }
+
+    location /query {
+        add_header 'Access-Control-Allow-Origin' '*';
+        include uwsgi_params;
+        uwsgi_pass unix:/query.sock;
+    }
+
+    location /orderbook {
+        add_header 'Access-Control-Allow-Origin' '*';
+        include uwsgi_params;
+        uwsgi_pass unix:/orderbook.sock;
+    }
+
+    location /datamining {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Headers' 'Content-Type' always;
+        include uwsgi_params;
+        uwsgi_pass unix:/query.sock;
+    }
+
+    location /socket.io {
+        proxy_pass http://localhost:81;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+}

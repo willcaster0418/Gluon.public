@@ -1,0 +1,30 @@
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.element {
+    /* 기본 스타일 */
+    background-color: #000;
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+
+    /* 마우스 오버 스타일 */
+    &:hover {
+        background-color: #fff;
+        color: #000;
+    }
+
+    /* 클릭 후 스타일 */
+    &:active {
+        background-color: #000;
+        color: #fff;
+    }
+}

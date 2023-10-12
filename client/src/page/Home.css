@@ -1,0 +1,22 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height : 100vh;
+}
+
+.top {
+    flex: 1;
+    background-color: white;
+    flex-grow : 1;
+}
+
+.mid {
+    flex: 1;
+    background-color: white;
+    flex-grow : 8;
+}
+.bottom {
+    flex: 1;
+    background-color: white;
+    flex-grow : 1;
+}
