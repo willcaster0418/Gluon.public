@@ -1,9 +1,6 @@
 # Gluon.public
 인증/실시간전송/쿼리전송 지원 
 
-# Gluon
-- Gluon : 끊임없고 강력한 분석력의 결합을 통해 수익을 창출하는 시스템
-
 # build image  
 - docker build -t gluon -f Gluon.dockerfile .  
 
