@@ -2,6 +2,7 @@ from pkg.crawl.crawl_naver import CrawlNaver
 from pkg.dbwrapper.mariadb import MariaDBWrapper
 import time, sysv_ipc, struct, datetime, logging, os, json
 from gandan.GandanPub import *
+import socket
 
 MEMORY_UNIT = 64 * (20 + 3)
 if "MEMORY_UNIT" in os.environ:
@@ -28,21 +29,51 @@ if __name__ == "__main__":
     c = CrawlNaver()
     p = GandanPub(os.environ.get('MW_URL'), int(os.environ.get('MW_PORT')))
 
+    multicast_group = '224.1.1.1'
+    port = 7000
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
+    sock.bind(('multicast_group', port))
+
+    mreq = struct.pack("4sl", socket.inet_aton(multicast_group), socket.INADDR_ANY)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
     while True:
-        _dict = c.snap_krx(page=1, filter={"현재가": "price", "거래량": "volume"})
-        for ticker in _dict.keys():
-            if ticker in memory_dict.keys():
-                seq = memory_dict[ticker]
-                data = struct.pack('d', datetime.datetime.now().timestamp())
-                memory.write(data, offset = seq * MEMORY_UNIT + 64 * 0)
-                data = struct.pack('d', _dict[ticker]['price'])
-                memory.write(data, offset = seq * MEMORY_UNIT + 64 * 1)
-                data = struct.pack('d', _dict[ticker]['volume'])
-                memory.write(data, offset = seq * MEMORY_UNIT + 64 * 2)
+        #receive market data from server.py instead of crawl_naver.py
+        data_recv, _addr = sock.recvfrom(16384)
+        if len(data_recv) > 16384: #check extra large data
+            print(len(data_recv)) 
+        data_recv = data_recv.split(b'\n')
+        for data_ in data_recv:
+            time_len, tr_len=9, 5 #timestamp len : 9, tr len : 5 (of MKT_DATA)
+            if len(data_) >= time_len+tr_len:
+                tr = data_[time_len : time_len+2]
+                if tr.decode() == "A3": #defined only when tr starts with A3
+                    dict_={}
+                    ticker = data_[time_len+8 : time_len+14].decode()
+                    if ticker in memory_dict.keys():
+                        try:
+                            seq = memory_dict[ticker]
+                            dict_['key'] = "item"
+                            dict_['code'] = ticker
 
-                _dict[ticker]['key'] = "item"
-                _dict[ticker]['code'] = ticker
-                p.pub("PUB_MKT"+ticker, json.dumps(_dict[ticker]))
+                            #used timestamp of MKT_DATA
+                            data = struct.pack('d', float(data_[:time_len].decode())) 
+                            memory.write(data, offset = seq * MEMORY_UNIT + 64 * 0) 
 
-        logging.info(f"crawl_naver.py >> {datetime.datetime.now()} >> {len(_dict)}")
-        time.sleep(10)
+                            dict_['price'] =float(data_[time_len+34:time_len+43].decode())
+                            data = struct.pack('d', dict_['price'])
+                            memory.write(data, offset = seq * MEMORY_UNIT + 64 * 1)
+
+                            dict_['volume']=float(data_[time_len+43:time_len+53].decode())
+                            data = struct.pack('d', dict_['volume'])
+                            memory.write(data, offset = seq * MEMORY_UNIT + 64 * 2)
+
+                            p.pub("PUB_MKT"+ticker, json.dumps(dict_))
+                        except:
+                            #print("parse error", ticker)
+                            continue
+
+    time.sleep(5)
+    sock.close()

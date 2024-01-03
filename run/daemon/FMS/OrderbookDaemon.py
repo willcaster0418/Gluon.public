@@ -50,7 +50,7 @@ def initialize():
     items = db.select("select * from ITEM")
 
     for item in items:
-        item_dict[item['name']] = item['seq']
+        item_dict[item['id']] = item['seq']
 
     memory = sysv_ipc.SharedMemory(1, flags=sysv_ipc.IPC_CREAT) 
     orderbook = flask.Flask(__name__)

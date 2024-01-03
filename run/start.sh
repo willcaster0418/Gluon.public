@@ -19,6 +19,7 @@ python3 /gluon/run/snap/shared_write.py
 
 python3 /gluon/run/daemon/FMS/RealTimeDaemon.py &
 python3 /gluon/run/interface/market/naver.py &
+python3 /gluon/run/interface/market/server.py &
 python3 /gluon/run/interface/order/fake.py &
 
 uwsgi --ini=/gluon/config/query.config     --chdir /gluon/run/daemon/FMS --enable-threads
