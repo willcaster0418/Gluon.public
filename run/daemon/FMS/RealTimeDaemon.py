@@ -72,6 +72,7 @@ async def handler(websocket, path):
                         await websocket.send(json.dumps(rquery))
                     if rquery['key'] == "del":
                         logging.info(f"rquery delete : ${data}")
+                        del t[rquery['keyword']]
                 except Exception as e1:
                     logging.info(str(e1))
                     pass

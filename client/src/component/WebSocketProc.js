@@ -1,17 +1,43 @@
 import React, { useEffect, useRef, useState } from "react";
+import ItemList from "./ItemList";
 
 const WebSocketProc = (props) => {
     const url = `${props.url}`;
     const ws = useRef(undefined);
-    const [item, setItem] = useState({});
+    const [items, setItems] = useState([]);
     const [time, setTime] = useState(0);
+    const [updateItem, setUpdateItem] = useState([]);
 
-    async function AddItem(){
+    const AddItem = () =>{
         const keyword = document.querySelector("#add-item").value;
         const key = "add";
-        setItem(item => ({...item, [keyword]: undefined}))
-        ws.current.send(JSON.stringify({key, keyword}))
+        const new_item={"code":keyword, "price":'...', "volume":'...'};
+        if(!items.some(i => i.code === keyword)){ //check if it is new item
+            setItems(_ => {return [..._, new_item]});
+            ws.current.send(JSON.stringify({key, keyword}));
+        }
     }
+    const RemoveItem = (code) => {
+        const key = "del";
+        setItems(items.filter(i => i.code !== code));
+        ws.current.send(JSON.stringify({key, keyword:code}));
+    }
+
+    useEffect(() => {
+        const updated_item=items.map(i => {
+            if (i.code !== updateItem.code){
+                return i;
+            }else{
+                return{
+                    ... i,
+                    price: updateItem.price,
+                    volume: updateItem.volume
+                };
+            }
+        })
+        setItems(updated_item);
+    }, [updateItem]);
+
     useEffect(() => {
         if(props.token === undefined 
             && ws.current !== undefined
@@ -35,7 +61,7 @@ const WebSocketProc = (props) => {
                     setTime(data.value);
                 }
                 if(data.key === "item"){
-                    setItem(item => ({...item, [data.code]: JSON.stringify(data)}))
+                    setUpdateItem(data);
                 }
             };
 
@@ -44,7 +70,7 @@ const WebSocketProc = (props) => {
         }
         return () => {
         }
-    });
+    }, [ws]);
 
     return (
         <div>
@@ -54,14 +80,7 @@ const WebSocketProc = (props) => {
                 placeholder="keyword"></input>
             <button onClick={()=>{AddItem()}}>ADD</button>
             <ul>
-                {Object.keys(item).map((key) => {
-                    return <li key={key}>{key} : {item[key]}
-                            <button onClick={()=>{
-                                const key = "del";
-                                ws.current.send(JSON.stringify({key, keyword:key}))
-                                alert("del");
-                            }}>DEL</button></li>
-                })}
+                <ItemList items={items} onRemove={RemoveItem}/>
             </ul>
         </div>
     );
